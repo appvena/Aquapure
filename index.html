@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaPure — Solusi Air Bersih Dedi Arman</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ocean: #0EA5E9; --deep: #0369A1; --teal: #06B6D4;
+  --slate: #1E293B; --muted: #64748B; --ice: #F0F9FF;
+  --white: #FFFFFF; --surface: #F8FAFC; --border: #E2E8F0;
+  --gold: #F59E0B; --green: #10B981;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--white); color: var(--slate); overflow-x: hidden; }
+
+/* ══════════════ LOADING SCREEN ══════════════ */
+#loadingScreen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, #0c1a2e 0%, #0c3a5c 60%, #0a5a7a 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+#loadingScreen.hidden { opacity: 0; visibility: hidden; }
+
+.loader-logo {
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  animation: logoPop 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes logoPop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.loader-drop-wrap {
+  position: relative; width: 90px; height: 110px;
+  display: flex; align-items: center; justify-content: center;
+}
+.loader-drop {
+  width: 70px; height: 90px;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9, #0369a1);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  transform: rotate(180deg);
+  box-shadow: 0 20px 60px rgba(14,165,233,0.5), inset 0 -8px 20px rgba(255,255,255,0.15);
+  position: relative; overflow: hidden;
+  animation: dropPulse 2s ease-in-out infinite;
+}
+@keyframes dropPulse {
+  0%,100% { transform: rotate(180deg) scale(1); box-shadow: 0 20px 60px rgba(14,165,233,0.5); }
+  50% { transform: rotate(180deg) scale(1.06); box-shadow: 0 28px 80px rgba(14,165,233,0.7); }
+}
+.drop-shine {
+  position: absolute; top: 18px; left: 16px;
+  width: 20px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  transform: rotate(-30deg);
+}
+.drop-ripple {
+  position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+  width: 80px; height: 20px; border-radius: 50%;
+  background: rgba(14,165,233,0.3);
+  animation: ripple 2s ease-in-out infinite;
+}
+@keyframes ripple {
+  0% { transform: translateX(-50%) scale(0.8); opacity: 0.8; }
+  100% { transform: translateX(-50%) scale(1.8); opacity: 0; }
+}
+
+.loader-brand {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800; font-size: 2.2rem; color: white;
+  letter-spacing: -0.02em; margin-top: 1.2rem;
+  animation: fadeUp 0.6s 0.4s both ease;
+}
+.loader-brand span { color: #38bdf8; }
+.loader-tagline {
+  color: rgba(255,255,255,0.55); font-size: 0.85rem;
+  text-align: center; margin-top: 0.3rem;
+  animation: fadeUp 0.6s 0.6s both ease;
+}
+@keyframes fadeUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.loader-bar-wrap {
+  margin-top: 2.5rem; width: 180px;
+  animation: fadeUp 0.6s 0.8s both ease;
+}
+.loader-bar-track {
+  height: 4px; background: rgba(255,255,255,0.12);
+  border-radius: 100px; overflow: hidden;
+}
+.loader-bar-fill {
+  height: 100%; width: 0;
+  background: linear-gradient(90deg, #38bdf8, #06b6d4);
+  border-radius: 100px;
+  animation: barFill 1.8s 0.4s ease forwards;
+}
+@keyframes barFill { to { width: 100%; } }
+.loader-pct {
+  text-align: center; color: rgba(255,255,255,0.4);
+  font-size: 0.75rem; margin-top: 0.6rem;
+  animation: countUp 1.8s 0.4s ease forwards;
+}
+
+/* Bubbles bg loader */
+.lb { position: absolute; border-radius: 50%; background: rgba(14,165,233,0.08); animation: lfloat 6s ease-in-out infinite; }
+.lb1 { width: 100px; height: 100px; top: 10%; left: 8%; }
+.lb2 { width: 60px; height: 60px; top: 25%; right: 12%; animation-delay: 2s; }
+.lb3 { width: 140px; height: 140px; bottom: 15%; left: 5%; animation-delay: 3s; }
+.lb4 { width: 50px; height: 50px; bottom: 30%; right: 8%; animation-delay: 1s; }
+@keyframes lfloat { 0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)} }
+
+/* ══════════════ NAV ══════════════ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 2rem;
+  background: rgba(255,255,255,0.93); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border); transition: box-shadow 0.3s;
+}
+nav.scrolled { box-shadow: 0 4px 24px rgba(14,165,233,0.1); }
+.logo {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800;
+  font-size: 1.4rem; color: var(--ocean);
+  display: flex; align-items: center; gap: 0.5rem; text-decoration: none;
+}
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a { text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+.nav-links a:hover { color: var(--ocean); }
+.nav-right { display: flex; gap: 0.6rem; align-items: center; }
+.nav-cta {
+  background: var(--ocean); color: white;
+  border: none; padding: 0.6rem 1.4rem; border-radius: 100px;
+  font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.9rem;
+  cursor: pointer; transition: background 0.2s, transform 0.15s; text-decoration: none;
+}
+.nav-cta:hover { background: var(--deep); transform: translateY(-1px); }
+.nav-admin {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border); padding: 0.55rem 1rem; border-radius: 100px;
+  font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s; text-decoration: none;
+}
+.nav-admin:hover { border-color: var(--ocean); color: var(--ocean); }
+
+/* ══════════════ HERO ══════════════ */
+.hero {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #0c1a2e 0%, #0c3a5c 50%, #0a5a7a 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; padding: 6rem 2rem 4rem; text-align: center;
+}
+.wave-container { position: absolute; bottom: 0; left: 0; right: 0; height: 160px; overflow: hidden; }
+.wave {
+  position: absolute; bottom: 0; left: -50%;
+  width: 200%; height: 160px; background: var(--white);
+  border-radius: 50% 50% 0 0 / 60px 60px 0 0;
+  animation: waveAnim 6s ease-in-out infinite;
+}
+.wave2 { background: rgba(6,182,212,0.3); animation: waveAnim 8s ease-in-out infinite reverse; bottom: 10px; }
+@keyframes waveAnim { 0%,100%{transform:translateX(0) scaleY(1)}50%{transform:translateX(5%) scaleY(1.08)} }
+.bubble { position: absolute; border-radius: 50%; background: rgba(14,165,233,0.12); animation: float 8s ease-in-out infinite; }
+.b1{width:80px;height:80px;top:15%;left:10%} .b2{width:40px;height:40px;top:30%;right:15%;animation-delay:2s}
+.b3{width:120px;height:120px;top:60%;left:5%;animation-delay:4s} .b4{width:60px;height:60px;top:20%;right:8%;animation-delay:1s}
+@keyframes float { 0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-20px) scale(1.05)} }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(14,165,233,0.2); border: 1px solid rgba(14,165,233,0.4);
+  color: #7DD3FC; padding: 0.35rem 1rem; border-radius: 100px;
+  font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1.5rem;
+}
+.hero h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(2.4rem,6vw,4.2rem);
+  font-weight: 800; color: white; line-height: 1.15; max-width: 800px; margin-bottom: 1.2rem;
+}
+.hero h1 span { color: var(--teal); }
+.hero p { font-size: 1.1rem; color: rgba(255,255,255,0.7); max-width: 540px; line-height: 1.7; margin-bottom: 2.5rem; }
+.hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--ocean); color: white; padding: 0.85rem 2rem; border-radius: 100px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1rem;
+  text-decoration: none; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 8px 32px rgba(14,165,233,0.4);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(14,165,233,0.5); }
+.btn-ghost {
+  background: transparent; color: white; padding: 0.85rem 2rem; border-radius: 100px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 1rem;
+  text-decoration: none; border: 2px solid rgba(255,255,255,0.3); cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.btn-ghost:hover { border-color: white; background: rgba(255,255,255,0.08); }
+.hero-stats { display: flex; gap: 2.5rem; justify-content: center; margin-top: 3rem; flex-wrap: wrap; }
+.stat { text-align: center; }
+.stat-num { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2rem; font-weight: 800; color: white; }
+.stat-label { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 0.2rem; }
+
+/* ══════════════ SECTIONS ══════════════ */
+section { padding: 5rem 2rem; }
+.container { max-width: 1100px; margin: 0 auto; }
+.section-label { display: inline-block; color: var(--ocean); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+.section-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(1.8rem,4vw,2.6rem); font-weight: 800; color: var(--slate); line-height: 1.2; margin-bottom: 1rem; }
+.section-sub { color: var(--muted); font-size: 1rem; line-height: 1.7; max-width: 540px; }
+
+/* ══════════════ PACKAGES ══════════════ */
+#paket { background: var(--surface); }
+.pkg-header { text-align: center; margin-bottom: 3rem; }
+.pkg-header .section-sub { margin: 0 auto; }
+.pkg-tabs { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+.tab-btn {
+  padding: 0.55rem 1.4rem; border-radius: 100px; border: 2px solid var(--border);
+  background: white; color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+}
+.tab-btn.active, .tab-btn:hover { border-color: var(--ocean); background: var(--ocean); color: white; }
+.pkg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; }
+.pkg-card {
+  background: white; border-radius: 20px; border: 2px solid var(--border);
+  padding: 2rem; position: relative; transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s; cursor: pointer;
+}
+.pkg-card:hover { transform: translateY(-6px); box-shadow: 0 20px 60px rgba(14,165,233,0.15); border-color: var(--ocean); }
+.pkg-card.popular { border-color: var(--ocean); box-shadow: 0 12px 40px rgba(14,165,233,0.2); }
+.popular-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--ocean), var(--teal));
+  color: white; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 1.2rem; border-radius: 100px; white-space: nowrap;
+}
+.pkg-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 1.2rem; }
+.pkg-icon.blue{background:#EFF6FF} .pkg-icon.teal{background:#F0FDFA} .pkg-icon.gold{background:#FFFBEB} .pkg-icon.purple{background:#FAF5FF}
+.pkg-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--slate); margin-bottom: 0.3rem; }
+.pkg-type { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; }
+.pkg-price { margin-bottom: 1.2rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--border); }
+.price-num { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2rem; font-weight: 800; color: var(--slate); }
+.price-num span { font-size: 1rem; font-weight: 500; color: var(--muted); }
+.price-note { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+.pkg-features { list-style: none; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.pkg-features li { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.9rem; color: var(--slate); }
+.pkg-features li .check { width:18px;height:18px;border-radius:50%;background:#DCFCE7;color:var(--green);display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0;margin-top:1px; }
+.pkg-features li .x { width:18px;height:18px;border-radius:50%;background:#F1F5F9;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0;margin-top:1px; }
+.pkg-btn { width:100%;padding:0.8rem;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;border:2px solid var(--ocean);transition:all 0.2s; }
+.pkg-btn.outline{background:white;color:var(--ocean)} .pkg-btn.outline:hover{background:var(--ocean);color:white}
+.pkg-btn.filled{background:var(--ocean);color:white} .pkg-btn.filled:hover{background:var(--deep)}
+
+/* ══════════════ STEPS ══════════════ */
+#cara-kerja { background: white; }
+.steps-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 2rem; margin-top: 3rem; }
+.step { text-align: center; padding: 2rem 1.5rem; border-radius: 20px; background: var(--surface); transition: transform 0.2s; }
+.step:hover { transform: translateY(-4px); }
+.step-num {
+  width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--ocean),var(--teal));
+  color:white;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 1.2rem;box-shadow:0 8px 20px rgba(14,165,233,0.35);
+}
+.step-icon{font-size:2rem;margin-bottom:1rem}
+.step h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:1rem;font-weight:700;margin-bottom:0.5rem}
+.step p{font-size:0.875rem;color:var(--muted);line-height:1.6}
+
+/* ══════════════ FEATURES ══════════════ */
+#keunggulan{background:white}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-top:3rem}
+.feat-card{padding:1.5rem;border-radius:16px;border:1px solid var(--border);transition:border-color 0.2s,box-shadow 0.2s}
+.feat-card:hover{border-color:var(--ocean);box-shadow:0 4px 20px rgba(14,165,233,0.1)}
+.feat-emoji{font-size:1.8rem;margin-bottom:0.8rem}
+.feat-card h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:0.95rem;font-weight:700;margin-bottom:0.4rem}
+.feat-card p{font-size:0.83rem;color:var(--muted);line-height:1.6}
+
+/* ══════════════ TESTIMONI ══════════════ */
+#testimoni{background:var(--surface)}
+.testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:3rem}
+.testi-card{background:white;border-radius:16px;padding:1.5rem;border:1px solid var(--border);transition:box-shadow 0.2s}
+.testi-card:hover{box-shadow:0 8px 32px rgba(0,0,0,0.06)}
+.stars{color:var(--gold);font-size:0.9rem;margin-bottom:1rem}
+.testi-text{font-size:0.9rem;color:var(--slate);line-height:1.7;margin-bottom:1.2rem;font-style:italic}
+.testi-author{display:flex;align-items:center;gap:0.75rem}
+.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--ocean),var(--teal));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.9rem;flex-shrink:0}
+.author-name{font-weight:600;font-size:0.9rem} .author-loc{font-size:0.78rem;color:var(--muted)}
+
+/* ══════════════ PESAN ══════════════ */
+#pesan{background:linear-gradient(135deg,#0c1a2e 0%,#0369A1 100%);position:relative;overflow:hidden}
+#pesan::before{content:'💧';position:absolute;font-size:18rem;opacity:0.03;top:-2rem;right:-3rem;pointer-events:none}
+.pesan-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start}
+.pesan-info h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.8rem,3.5vw,2.4rem);font-weight:800;color:white;margin-bottom:1rem}
+.pesan-info p{color:rgba(255,255,255,0.65);line-height:1.7;margin-bottom:2rem}
+.contact-item{display:flex;align-items:center;gap:0.75rem;color:rgba(255,255,255,0.8);font-size:0.9rem;margin-bottom:0.8rem}
+.contact-icon{width:36px;height:36px;border-radius:10px;background:rgba(14,165,233,0.2);border:1px solid rgba(14,165,233,0.3);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.order-form{background:white;border-radius:24px;padding:2rem}
+.order-form h3{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1.2rem;color:var(--slate);margin-bottom:1.5rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:0.82rem;font-weight:600;color:var(--slate);margin-bottom:0.4rem}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:0.75rem 1rem;border:2px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.9rem;color:var(--slate);background:var(--surface);transition:border-color 0.2s;outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--ocean);background:white}
+.form-group textarea{resize:vertical;min-height:90px}
+.form-submit{width:100%;padding:1rem;background:linear-gradient(90deg,var(--ocean),var(--teal));color:white;border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;transition:opacity 0.2s,transform 0.2s;box-shadow:0 8px 24px rgba(14,165,233,0.35)}
+.form-submit:hover{opacity:0.9;transform:translateY(-1px)}
+.success-msg{display:none;text-align:center;padding:2rem}
+.success-msg .big-icon{font-size:3rem;margin-bottom:1rem}
+.success-msg h4{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1.2rem;color:var(--green)}
+.success-msg p{font-size:0.9rem;color:var(--muted);margin-top:0.5rem}
+
+/* ══════════════ FOOTER ══════════════ */
+footer{background:var(--slate);color:rgba(255,255,255,0.6);padding:2.5rem;text-align:center;font-size:0.85rem}
+footer .footer-logo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem;color:var(--ocean);margin-bottom:0.5rem}
+
+/* ══════════════ MODAL ══════════════ */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:24px;padding:2.5rem;max-width:500px;width:100%;animation:modalIn 0.3s ease;max-height:90vh;overflow-y:auto}
+@keyframes modalIn{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem}
+.modal-close{width:32px;height:32px;border-radius:50%;background:var(--surface);border:none;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s}
+.modal-close:hover{background:var(--border)}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border);font-size:0.9rem}
+.detail-row:last-child{border-bottom:none}
+.detail-label{color:var(--muted)} .detail-val{font-weight:600;color:var(--slate)}
+.modal-btn{width:100%;padding:0.9rem;margin-top:1.5rem;background:var(--ocean);color:white;border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;transition:background 0.2s}
+.modal-btn:hover{background:var(--deep)}
+.wa-btn{width:100%;padding:0.9rem;margin-top:0.75rem;background:#25D366;color:white;border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;transition:background 0.2s}
+.wa-btn:hover{background:#1ebe5a}
+
+/* ══════════════ TOAST ══════════════ */
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--slate);color:white;padding:0.8rem 1.4rem;border-radius:12px;font-size:0.9rem;z-index:9000;transform:translateY(100px);opacity:0;transition:all 0.3s}
+.toast.show{transform:translateY(0);opacity:1}
+
+@media(max-width:768px){
+  nav{padding:1rem} .nav-links{display:none}
+  .pesan-grid{grid-template-columns:1fr;gap:2rem}
+  .form-row{grid-template-columns:1fr}
+  .hero-stats{gap:1.5rem}
+}
+@media(max-width:480px){section{padding:3.5rem 1.2rem}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOADING SCREEN ══════════════ -->
+<div id="loadingScreen">
+  <div class="lb lb1"></div>
+  <div class="lb lb2"></div>
+  <div class="lb lb3"></div>
+  <div class="lb lb4"></div>
+  <div class="loader-logo">
+    <div class="loader-drop-wrap">
+      <div class="loader-drop">
+        <div class="drop-shine"></div>
+      </div>
+      <div class="drop-ripple"></div>
+    </div>
+    <div class="loader-brand">Aqua<span>Pure</span></div>
+    <div class="loader-tagline">Solusi Air Bersih Terpercaya</div>
+    <div class="loader-bar-wrap">
+      <div class="loader-bar-track"><div class="loader-bar-fill"></div></div>
+      <div class="loader-pct" id="loaderPct">Memuat data...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav id="navbar">
+  <a href="#" class="logo">💧 AquaPure</a>
+  <ul class="nav-links">
+    <li><a href="#paket">Paket</a></li>
+    <li><a href="#cara-kerja">Cara Kerja</a></li>
+    <li><a href="#keunggulan">Keunggulan</a></li>
+    <li><a href="#testimoni">Testimoni</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="admin.html" class="nav-admin">⚙️ Admin</a>
+    <a href="#pesan" class="nav-cta">Pesan Sekarang</a>
+  </div>
+</nav>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero" id="beranda">
+  <div class="bubble b1"></div><div class="bubble b2"></div>
+  <div class="bubble b3"></div><div class="bubble b4"></div>
+  <div class="hero-badge" id="heroBadge">✨ Terpercaya sejak 2015</div>
+  <h1 id="heroTitle">Air Bersih Berkualitas<br>Langsung ke <span>Rumah Anda</span></h1>
+  <p id="heroDesc">Solusi lengkap pemasangan depot air isi ulang & sistem filtrasi RO (Reverse Osmosis). Kualitas terjamin, pemasangan cepat, garansi purna jual.</p>
+  <div class="hero-btns">
+    <a href="#paket" class="btn-primary">Lihat Paket →</a>
+    <a href="#cara-kerja" class="btn-ghost">Cara Kerja</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num" id="statPelanggan">1.200+</div><div class="stat-label">Pelanggan Puas</div></div>
+    <div class="stat"><div class="stat-num" id="statKota">8 Kota</div><div class="stat-label">Jangkauan Layanan</div></div>
+    <div class="stat"><div class="stat-num" id="statTahun">10 Thn</div><div class="stat-label">Pengalaman</div></div>
+    <div class="stat"><div class="stat-num">4.9 ⭐</div><div class="stat-label">Rating Pelanggan</div></div>
+  </div>
+  <div class="wave-container"><div class="wave wave2"></div><div class="wave"></div></div>
+</section>
+
+<!-- ══════════════ PAKET ══════════════ -->
+<section id="paket">
+  <div class="container">
+    <div class="pkg-header">
+      <span class="section-label">Pilih Paket</span>
+      <h2 class="section-title">Paket Sesuai Kebutuhan Anda</h2>
+      <p class="section-sub" style="margin:0 auto">Mulai dari paket rumahan hingga komersial skala besar, kami siapkan solusi terbaik.</p>
+    </div>
+    <div class="pkg-tabs">
+      <button class="tab-btn active" onclick="filterPkg('semua',this)">Semua Paket</button>
+      <button class="tab-btn" onclick="filterPkg('isi-ulang',this)">Air Isi Ulang</button>
+      <button class="tab-btn" onclick="filterPkg('ro',this)">Sistem RO</button>
+      <button class="tab-btn" onclick="filterPkg('kombo',this)">Kombo</button>
+    </div>
+    <div class="pkg-grid" id="pkgGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted)">⏳ Memuat paket...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ CARA KERJA ══════════════ -->
+<section id="cara-kerja">
+  <div class="container">
+    <span class="section-label">Prosedur</span>
+    <h2 class="section-title">Bagaimana Cara Kerjanya?</h2>
+    <p class="section-sub">Proses pemasangan mudah & transparan — selesai dalam 1–3 hari kerja.</p>
+    <div class="steps-grid">
+      <div class="step"><div class="step-num">1</div><div class="step-icon">📋</div><h3>Pilih Paket</h3><p>Pilih paket yang sesuai kebutuhan dan isi formulir pemesanan online.</p></div>
+      <div class="step"><div class="step-num">2</div><div class="step-icon">🔍</div><h3>Survei Lokasi</h3><p>Tim teknisi datang untuk menilai kondisi dan merencanakan pemasangan terbaik.</p></div>
+      <div class="step"><div class="step-num">3</div><div class="step-icon">🔧</div><h3>Pemasangan</h3><p>Teknisi berpengalaman memasang peralatan rapi sesuai standar keamanan nasional.</p></div>
+      <div class="step"><div class="step-num">4</div><div class="step-icon">🧪</div><h3>Uji Kualitas</h3><p>Tes kualitas air memastikan sistem berfungsi sempurna sebelum diserahterimakan.</p></div>
+      <div class="step"><div class="step-num">5</div><div class="step-icon">📞</div><h3>Purna Jual</h3><p>Dukungan teknis & maintenance berkala tersedia untuk menjaga performa sistem Anda.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ KEUNGGULAN ══════════════ -->
+<section id="keunggulan">
+  <div class="container">
+    <span class="section-label">Kenapa Kami</span>
+    <h2 class="section-title">Keunggulan AquaPure</h2>
+    <div class="feat-grid">
+      <div class="feat-card"><div class="feat-emoji">🏆</div><h3>Berpengalaman 10 Tahun</h3><p>Lebih dari 1.200 instalasi sukses di berbagai kota besar Indonesia.</p></div>
+      <div class="feat-card"><div class="feat-emoji">⚡</div><h3>Pemasangan Cepat</h3><p>Instalasi selesai 1–3 hari kerja, tidak mengganggu rutinitas Anda.</p></div>
+      <div class="feat-card"><div class="feat-emoji">🔬</div><h3>Teknologi RO Terkini</h3><p>Membran RO impor efisiensi filtrasi 99,9% untuk air benar-benar murni.</p></div>
+      <div class="feat-card"><div class="feat-emoji">📜</div><h3>Bersertifikat SNI</h3><p>Semua produk dan proses memenuhi Standar Nasional Indonesia.</p></div>
+      <div class="feat-card"><div class="feat-emoji">🛡️</div><h3>Garansi 2 Tahun</h3><p>Garansi penuh komponen utama 2 tahun pasca pemasangan.</p></div>
+      <div class="feat-card"><div class="feat-emoji">💬</div><h3>Layanan 24/7</h3><p>Tim support siap membantu via WhatsApp kapan saja Anda butuhkan.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ TESTIMONI ══════════════ -->
+<section id="testimoni">
+  <div class="container">
+    <span class="section-label">Kata Mereka</span>
+    <h2 class="section-title">Pelanggan Kami Berbicara</h2>
+    <div class="testi-grid">
+      <div class="testi-card"><div class="stars">★★★★★</div><p class="testi-text">"Pemasangan sangat cepat dan rapi. Teknisinya profesional. Air lebih bersih dan segar sekarang!"</p><div class="testi-author"><div class="avatar">BS</div><div><div class="author-name">Budi Santoso</div><div class="author-loc">📍 Jakarta Selatan</div></div></div></div>
+      <div class="testi-card"><div class="stars">★★★★★</div><p class="testi-text">"Paket Depot Komersial sangat worth it! Air jernih, mesin awet. Omzet naik karena customer puas!"</p><div class="testi-author"><div class="avatar">RW</div><div><div class="author-name">Rina Wulandari</div><div class="author-loc">📍 Surabaya</div></div></div></div>
+      <div class="testi-card"><div class="stars">★★★★★</div><p class="testi-text">"Harga bersaing dan garansinya nyata. 2 tahun pakai, tidak pernah ada masalah. Tim after-sales responsif!"</p><div class="testi-author"><div class="avatar">DH</div><div><div class="author-name">Doni Hermawan</div><div class="author-loc">📍 Bandung</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ PESAN ══════════════ -->
+<section id="pesan">
+  <div class="container">
+    <div class="pesan-grid">
+      <div class="pesan-info">
+        <span class="section-label" style="color:#7DD3FC">Pesan Sekarang</span>
+        <h2>Siap Menikmati<br>Air Bersih Setiap Hari?</h2>
+        <p>Isi formulir atau hubungi kami langsung. Tim merespons dalam 1×24 jam.</p>
+        <div class="contact-item"><div class="contact-icon">📞</div><span id="contactPhone">085277966796</span></div>
+        <div class="contact-item"><div class="contact-icon">💬</div><span id="contactWA">WhatsApp: 085277966796</span></div>
+        <div class="contact-item"><div class="contact-icon">👤</div><span id="contactName">Dedi Arman</span></div>
+        <div class="contact-item"><div class="contact-icon">📍</div><span id="contactAlamat">Jl. Sumber Rejo No. 45</span></div>
+        <div class="contact-item"><div class="contact-icon">🕘</div><span id="contactJam">Senin – Sabtu, 08.00 – 17.00 WIB</span></div>
+      </div>
+      <div class="order-form">
+        <h3>📝 Form Pemesanan</h3>
+        <div id="formContent">
+          <div class="form-row">
+            <div class="form-group"><label>Nama Lengkap *</label><input type="text" id="fNama" placeholder="Nama Anda"></div>
+            <div class="form-group"><label>Nomor WhatsApp *</label><input type="tel" id="fWA" placeholder="08xx-xxxx-xxxx"></div>
+          </div>
+          <div class="form-group"><label>Alamat Pemasangan *</label><input type="text" id="fAlamat" placeholder="Jalan, kelurahan, kota"></div>
+          <div class="form-group"><label>Pilih Paket *</label><select id="fPaket"><option value="">-- Pilih paket --</option></select></div>
+          <div class="form-group"><label>Catatan Tambahan</label><textarea id="fCatatan" placeholder="Kondisi tempat, pertanyaan, atau permintaan khusus..."></textarea></div>
+          <button class="form-submit" onclick="submitOrder()">🚀 Kirim Permintaan Pemasangan</button>
+        </div>
+        <div class="success-msg" id="successMsg">
+          <div class="big-icon">✅</div>
+          <h4>Permintaan Terkirim!</h4>
+          <p>Tim kami akan menghubungi Anda via WhatsApp dalam 1×24 jam. Terima kasih!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="footer-logo">💧 AquaPure</div>
+  <p id="footerName">Dedi Arman — Solusi Air Bersih Terpercaya</p>
+  <p style="margin-top:0.5rem">© 2025 AquaPure. Semua hak dilindungi.</p>
+</footer>
+
+<!-- ══════════════ MODAL ══════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Detail Paket</div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div id="modalBody"></div>
+    <button class="modal-btn" onclick="scrollToOrder()">📋 Pesan Paket Ini</button>
+    <button class="wa-btn" id="waBtn">💬 Chat WhatsApp</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════ FIREBASE ══════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAuBx4xgdWLlKEJ98SKIEjSrK4LuHMU74c",
+  authDomain: "aqua-pure-13891.firebaseapp.com",
+  projectId: "aqua-pure-13891",
+  storageBucket: "aqua-pure-13891.firebasestorage.app",
+  messagingSenderId: "851106256682",
+  appId: "1:851106256682:web:d8e2e25b5d9923f8847053"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Default data jika Firestore kosong
+const defaultSettings = {
+  nama: 'Dedi Arman', wa: '085277966796', phone: '085277966796',
+  alamat: 'Jl. Sumber Rejo No. 45', jam: 'Senin – Sabtu, 08.00 – 17.00 WIB',
+  badge: 'Terpercaya sejak 2015',
+  heroTitle: 'Air Bersih Berkualitas Langsung ke Rumah Anda',
+  heroDesc: 'Solusi lengkap pemasangan depot air isi ulang & sistem filtrasi RO.'
+};
+
+const defaultPackages = [
+  { id:'pkg1', category:'isi-ulang', name:'Rumahan Standar', type:'Air Isi Ulang', icon:'💧', iconBg:'blue', popular:false, price:'Rp 1.500.000', priceNote:'sudah termasuk material & jasa pasang', features:[{ok:true,text:'Filter 3 tahap (sedimen, karbon, post-filter)'},{ok:true,text:'Kapasitas 200–300 liter/hari'},{ok:true,text:'Cocok untuk 1 keluarga (5–7 orang)'},{ok:true,text:'Garansi komponen 1 tahun'},{ok:false,text:'UV Sterilizer'},{ok:false,text:'Sistem RO'}], detail:{kapasitas:'200–300 L/hari',filter:'3 Tahap',garansi:'1 Tahun',cocok:'Rumah 1–2 KK',waktu:'1 Hari Kerja'} },
+  { id:'pkg2', category:'isi-ulang', name:'Rumahan Premium', type:'Air Isi Ulang', icon:'💧', iconBg:'teal', popular:true, price:'Rp 2.500.000', priceNote:'sudah termasuk UV sterilizer', features:[{ok:true,text:'Filter 5 tahap lengkap'},{ok:true,text:'Kapasitas 400–600 liter/hari'},{ok:true,text:'UV Sterilizer anti-bakteri'},{ok:true,text:'Garansi komponen 2 tahun'},{ok:true,text:'Maintenance visit 6 bulan sekali'},{ok:false,text:'Sistem RO membran'}], detail:{kapasitas:'400–600 L/hari',filter:'5 Tahap + UV',garansi:'2 Tahun',cocok:'Rumah Besar / Kos',waktu:'1–2 Hari Kerja'} },
+  { id:'pkg3', category:'isi-ulang', name:'Depot Mini', type:'Air Isi Ulang', icon:'🏭', iconBg:'blue', popular:false, price:'Rp 5.000.000', priceNote:'paket usaha kecil & menengah', features:[{ok:true,text:'Filter lengkap 7 tahap'},{ok:true,text:'Kapasitas 1.000–2.000 liter/hari'},{ok:true,text:'UV + Ozon sterilizer'},{ok:true,text:'Pompa tekanan tinggi'},{ok:true,text:'Mesin pengisian galon otomatis'},{ok:true,text:'Garansi 2 tahun + maintenance bulanan'}], detail:{kapasitas:'1.000–2.000 L/hari',filter:'7 Tahap + UV + Ozon',garansi:'2 Tahun',cocok:'Depot Air Usaha',waktu:'2–3 Hari Kerja'} },
+  { id:'pkg4', category:'isi-ulang', name:'Depot Komersial', type:'Air Isi Ulang', icon:'🏭', iconBg:'gold', popular:false, price:'Rp 9.500.000', priceNote:'kapasitas besar, siap komersial', features:[{ok:true,text:'Filter 9 tahap profesional'},{ok:true,text:'Kapasitas 3.000–5.000 liter/hari'},{ok:true,text:'Dual UV + Ozon sterilizer'},{ok:true,text:'Sistem pengisian galon otomatis ganda'},{ok:true,text:'Garansi 3 tahun + free service 3× setahun'},{ok:true,text:'Pelatihan operator termasuk'}], detail:{kapasitas:'3.000–5.000 L/hari',filter:'9 Tahap Profesional',garansi:'3 Tahun',cocok:'Bisnis Depot Besar',waktu:'3 Hari Kerja'} },
+  { id:'pkg5', category:'ro', name:'RO Rumahan Dasar', type:'Sistem RO', icon:'🌊', iconBg:'teal', popular:false, price:'Rp 2.200.000', priceNote:'air layak minum langsung dari kran', features:[{ok:true,text:'Membran RO 75 GPD'},{ok:true,text:'Filter 5 tahap RO murni'},{ok:true,text:'Tangki penyimpanan 3,2 liter'},{ok:true,text:'Garansi membran 1 tahun'},{ok:false,text:'Mineralizer / Alkaline'},{ok:false,text:'Layar TDS digital'}], detail:{kapasitas:'75 GPD (~280 L/hari)',filter:'5 Tahap RO',garansi:'1 Tahun',cocok:'Di bawah wastafel dapur',waktu:'1 Hari Kerja'} },
+  { id:'pkg6', category:'ro', name:'RO Rumahan Pro', type:'Sistem RO', icon:'🌊', iconBg:'purple', popular:true, price:'Rp 3.800.000', priceNote:'air mineral alkali premium', features:[{ok:true,text:'Membran RO 150 GPD premium'},{ok:true,text:'Filter 7 tahap + Alkaline mineral'},{ok:true,text:'Layar TDS digital real-time'},{ok:true,text:'Tangki penyimpanan 8 liter'},{ok:true,text:'Garansi membran 2 tahun'},{ok:true,text:'Remineralisasi untuk pH seimbang'}], detail:{kapasitas:'150 GPD (~560 L/hari)',filter:'7 Tahap + Alkaline',garansi:'2 Tahun',cocok:'Dapur & bar air keluarga',waktu:'1 Hari Kerja'} },
+  { id:'pkg7', category:'kombo', name:'Kombo Terlengkap', type:'Isi Ulang + RO', icon:'⭐', iconBg:'gold', popular:true, price:'Rp 7.500.000', priceNote:'hemat Rp 2.200.000 vs beli satuan', features:[{ok:true,text:'Depot air isi ulang 5 tahap + UV'},{ok:true,text:'Sistem RO 7 tahap alkali untuk minum'},{ok:true,text:'Kapasitas depot 400–600 L/hari'},{ok:true,text:'Instalasi lengkap 1 titik'},{ok:true,text:'Garansi 2 tahun semua komponen'},{ok:true,text:'Maintenance 6 bulan sekali gratis'}], detail:{kapasitas:'Depot 600 L + RO 560 L/hari',filter:'5+7 Tahap Lengkap',garansi:'2 Tahun Penuh',cocok:'Rumah / Kos / Kantor Kecil',waktu:'2–3 Hari Kerja'} }
+];
+
+let siteSettings = { ...defaultSettings };
+let allPackages = [...defaultPackages];
+let currentPkg = null;
+let waNumber = '6285277966796';
+
+async function loadData() {
+  const pct = document.getElementById('loaderPct');
+  try {
+    pct.textContent = 'Memuat pengaturan...';
+    // Load settings
+    try {
+      const settSnap = await getDocs(collection(db, 'settings'));
+      if (!settSnap.empty) {
+        settSnap.forEach(doc => { siteSettings = { ...defaultSettings, ...doc.data() }; });
+      }
+    } catch(e) { /* use defaults */ }
+
+    pct.textContent = 'Memuat paket...';
+    // Load packages
+    try {
+      const pkgSnap = await getDocs(collection(db, 'packages'));
+      if (!pkgSnap.empty) {
+        allPackages = [];
+        pkgSnap.forEach(doc => allPackages.push({ id: doc.id, ...doc.data() }));
+      }
+    } catch(e) { /* use defaults */ }
+
+    applySettings();
+    renderPackages('semua');
+    buildPaketSelect();
+    pct.textContent = 'Siap!';
+    setTimeout(hideLoader, 400);
+  } catch(err) {
+    pct.textContent = 'Mode offline';
+    applySettings();
+    renderPackages('semua');
+    buildPaketSelect();
+    setTimeout(hideLoader, 600);
+  }
+}
+
+function applySettings() {
+  waNumber = '62' + siteSettings.wa.replace(/^0/, '').replace(/\D/g,'');
+  document.getElementById('contactPhone').textContent = siteSettings.phone || siteSettings.wa;
+  document.getElementById('contactWA').textContent = 'WhatsApp: ' + siteSettings.wa;
+  document.getElementById('contactName').textContent = siteSettings.nama;
+  document.getElementById('contactAlamat').textContent = siteSettings.alamat;
+  document.getElementById('contactJam').textContent = siteSettings.jam;
+  document.getElementById('footerName').textContent = siteSettings.nama + ' — Solusi Air Bersih Terpercaya';
+  document.getElementById('heroBadge').textContent = '✨ ' + siteSettings.badge;
+}
+
+function hideLoader() {
+  document.getElementById('loadingScreen').classList.add('hidden');
+}
+
+function renderPackages(filter) {
+  const grid = document.getElementById('pkgGrid');
+  const list = filter === 'semua' ? allPackages : allPackages.filter(p => p.category === filter);
+  if (!list.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted)">Belum ada paket tersedia.</div>'; return; }
+  grid.innerHTML = list.map(pkg => `
+    <div class="pkg-card ${pkg.popular ? 'popular' : ''}">
+      ${pkg.popular ? '<div class="popular-badge">⭐ Paling Diminati</div>' : ''}
+      <div class="pkg-icon ${pkg.iconBg}">${pkg.icon}</div>
+      <div class="pkg-name">${pkg.name}</div>
+      <div class="pkg-type">${pkg.type}</div>
+      <div class="pkg-price">
+        <div class="price-num">${pkg.price}<span> /paket</span></div>
+        <div class="price-note">${pkg.priceNote}</div>
+      </div>
+      <ul class="pkg-features">
+        ${(pkg.features||[]).map(f => `<li><span class="${f.ok?'check':'x'}">${f.ok?'✓':'✕'}</span><span>${f.text}</span></li>`).join('')}
+      </ul>
+      <button class="${pkg.popular ? 'pkg-btn filled' : 'pkg-btn outline'}" onclick="window.openModal('${pkg.id}')">Lihat Detail & Pesan</button>
+    </div>`).join('');
+}
+
+function buildPaketSelect() {
+  const sel = document.getElementById('fPaket');
+  sel.innerHTML = '<option value="">-- Pilih paket --</option>' +
+    allPackages.map(p => `<option value="${p.id}">${p.icon} ${p.name} — ${p.price}</option>`).join('');
+}
+
+window.filterPkg = (cat, btn) => {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPackages(cat);
+};
+
+window.openModal = (id) => {
+  const pkg = allPackages.find(p => p.id === id);
+  if (!pkg) return;
+  currentPkg = pkg;
+  document.getElementById('modalTitle').textContent = `${pkg.icon} ${pkg.name}`;
+  const d = pkg.detail || {};
+  document.getElementById('modalBody').innerHTML = `
+    <div style="background:var(--ice);border-radius:12px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:1.5rem;font-weight:800;color:var(--ocean);font-family:'Plus Jakarta Sans',sans-serif">${pkg.price}</div>
+      <div style="font-size:0.8rem;color:var(--muted)">${pkg.priceNote}</div>
+    </div>
+    ${Object.entries({'📊 Kapasitas':d.kapasitas,'🔬 Sistem Filtrasi':d.filter,'🛡️ Garansi':d.garansi,'🏠 Cocok Untuk':d.cocok,'⏱️ Waktu Pasang':d.waktu}).map(([k,v]) =>
+      `<div class="detail-row"><span class="detail-label">${k}</span><span class="detail-val">${v||'-'}</span></div>`).join('')}`;
+  document.getElementById('waBtn').onclick = () => {
+    const msg = encodeURIComponent(`Halo ${siteSettings.nama}! Saya tertarik dengan *${pkg.name}* (${pkg.price}). Bisa info lebih lanjut?`);
+    window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
+  };
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeModal = (e) => { if (e.target === document.getElementById('modalOverlay')) window.closeModalDirect(); };
+window.closeModalDirect = () => { document.getElementById('modalOverlay').classList.remove('open'); document.body.style.overflow = ''; };
+
+window.scrollToOrder = () => {
+  window.closeModalDirect();
+  if (currentPkg) document.getElementById('fPaket').value = currentPkg.id;
+  document.getElementById('pesan').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.submitOrder = async () => {
+  const nama = document.getElementById('fNama').value.trim();
+  const wa = document.getElementById('fWA').value.trim();
+  const alamat = document.getElementById('fAlamat').value.trim();
+  const paketId = document.getElementById('fPaket').value;
+  const catatan = document.getElementById('fCatatan').value.trim();
+  if (!nama || !wa || !alamat || !paketId) { showToast('⚠️ Mohon lengkapi semua field yang wajib (*)'); return; }
+  const pkg = allPackages.find(p => p.id === paketId);
+  try {
+    await addDoc(collection(db, 'orders'), {
+      nama, wa, alamat, catatan,
+      paket: pkg ? pkg.name : paketId,
+      harga: pkg ? pkg.price : '',
+      waktu: serverTimestamp()
+    });
+  } catch(e) { /* still show success */ }
+  document.getElementById('formContent').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'block';
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeModalDirect(); });
+
+// Mulai load
+loadData();
+</script>
+</body>
+</html>
