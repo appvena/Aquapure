@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaPure — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ocean: #0EA5E9; --deep: #0369A1; --teal: #06B6D4;
+  --slate: #1E293B; --muted: #64748B; --ice: #F0F9FF;
+  --white: #FFFFFF; --surface: #F8FAFC; --border: #E2E8F0;
+  --gold: #F59E0B; --green: #10B981; --red: #EF4444;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--slate); min-height: 100vh; }
+
+/* ══ LOADING ══ */
+#adminLoader { position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0c1a2e,#0c3a5c);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s,visibility 0.5s; }
+#adminLoader.hidden { opacity:0;visibility:hidden; }
+.al-drop { width:60px;height:76px;background:linear-gradient(135deg,#38bdf8,#0ea5e9);border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;transform:rotate(180deg);animation:alPulse 1.5s ease-in-out infinite;box-shadow:0 16px 48px rgba(14,165,233,0.5); }
+@keyframes alPulse { 0%,100%{transform:rotate(180deg) scale(1)}50%{transform:rotate(180deg) scale(1.08)} }
+.al-text { font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.8rem;color:white;margin-top:1rem; }
+.al-sub { color:rgba(255,255,255,0.5);font-size:0.85rem;margin-top:0.3rem; }
+
+/* ══ IDLE WARNING ══ */
+#idleWarning {
+  display:none;position:fixed;inset:0;z-index:8000;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+#idleWarning.show { display:flex; }
+.idle-box {
+  background:white;border-radius:20px;padding:2rem;max-width:360px;width:90%;text-align:center;
+  animation:popIn 0.3s ease;
+}
+.idle-icon { font-size:3rem;margin-bottom:1rem; }
+.idle-box h3 { font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem;margin-bottom:0.5rem; }
+.idle-box p { color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem; }
+.idle-count { font-family:'Plus Jakarta Sans',sans-serif;font-size:2.5rem;font-weight:800;color:var(--red);margin-bottom:1rem; }
+.idle-stay { width:100%;padding:0.8rem;background:var(--ocean);color:white;border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer; }
+
+/* ══ LOGIN ══ */
+#loginScreen { display:none;position:fixed;inset:0;z-index:500;background:linear-gradient(160deg,#0c1a2e,#0c3a5c);align-items:center;justify-content:center; }
+#loginScreen.show { display:flex; }
+.login-box { background:white;border-radius:24px;padding:2.5rem;width:100%;max-width:400px;animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 40px 100px rgba(0,0,0,0.3); }
+@keyframes popIn { from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1} }
+.login-logo { text-align:center;margin-bottom:2rem; }
+.login-logo .drop-icon { font-size:2.5rem; }
+.login-logo h2 { font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.5rem;color:var(--slate);margin-top:0.5rem; }
+.login-logo p { color:var(--muted);font-size:0.85rem; }
+.lg { margin-bottom:1rem; }
+.lg label { display:block;font-size:0.82rem;font-weight:600;color:var(--slate);margin-bottom:0.4rem; }
+.lg input { width:100%;padding:0.8rem 1rem;border:2px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s; }
+.lg input:focus { border-color:var(--ocean); }
+.login-btn { width:100%;padding:0.9rem;background:linear-gradient(90deg,var(--ocean),var(--teal));color:white;border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;margin-top:0.5rem;transition:opacity 0.2s; }
+.login-btn:hover { opacity:0.9; }
+.login-err { color:var(--red);font-size:0.82rem;margin-top:0.5rem;display:none;text-align:center; }
+
+/* ══ LAYOUT ══ */
+#adminApp { display:none;min-height:100vh; }
+#adminApp.show { display:flex; }
+
+/* Sidebar */
+.sidebar { width:250px;min-height:100vh;background:var(--slate);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto; }
+.sb-brand { padding:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08); }
+.sb-logo { font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.3rem;color:var(--ocean); }
+.sb-sub { font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:0.2rem; }
+.sb-nav { flex:1;padding:1rem 0; }
+.sb-section { padding:0.5rem 1.2rem;font-size:0.7rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.5rem; }
+.sb-item { display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.5rem;cursor:pointer;transition:background 0.15s;color:rgba(255,255,255,0.65);font-size:0.9rem;border:none;background:none;width:100%;text-align:left; }
+.sb-item:hover { background:rgba(255,255,255,0.06);color:white; }
+.sb-item.active { background:rgba(14,165,233,0.2);color:var(--ocean);border-right:3px solid var(--ocean); }
+.sb-item .icon { font-size:1.1rem; }
+.sb-footer { padding:1.2rem 1.5rem;border-top:1px solid rgba(255,255,255,0.08); }
+.sb-user { color:rgba(255,255,255,0.6);font-size:0.78rem;margin-bottom:0.5rem;word-break:break-all; }
+.idle-info { color:rgba(255,255,255,0.35);font-size:0.72rem;margin-bottom:0.75rem; }
+.sb-logout { width:100%;padding:0.6rem;background:rgba(239,68,68,0.15);color:#FCA5A5;border:1px solid rgba(239,68,68,0.3);border-radius:8px;cursor:pointer;font-size:0.85rem;transition:background 0.2s; }
+.sb-logout:hover { background:rgba(239,68,68,0.25); }
+
+/* Main */
+.main-content { flex:1;padding:2rem;overflow-x:auto;min-width:0; }
+.page { display:none; }
+.page.active { display:block; }
+.page-title { font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.6rem;color:var(--slate);margin-bottom:0.3rem; }
+.page-sub { color:var(--muted);font-size:0.9rem;margin-bottom:2rem; }
+
+/* Cards */
+.card { background:white;border-radius:16px;border:1px solid var(--border);padding:1.5rem;margin-bottom:1.5rem; }
+.card-title { font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1rem;margin-bottom:1.2rem;color:var(--slate);display:flex;align-items:center;gap:0.5rem; }
+
+/* Form */
+.fg { margin-bottom:1rem; }
+.fg label { display:block;font-size:0.82rem;font-weight:600;color:var(--slate);margin-bottom:0.4rem; }
+.fg input,.fg select,.fg textarea { width:100%;padding:0.7rem 0.9rem;border:2px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.9rem;color:var(--slate);background:var(--surface);outline:none;transition:border-color 0.2s; }
+.fg input:focus,.fg select:focus,.fg textarea:focus { border-color:var(--ocean);background:white; }
+.fg textarea { resize:vertical;min-height:80px; }
+.fg-row { display:grid;grid-template-columns:1fr 1fr;gap:1rem; }
+
+/* Buttons */
+.btn { padding:0.7rem 1.4rem;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;border:none;transition:all 0.2s; }
+.btn-save { background:var(--ocean);color:white; }
+.btn-save:hover { background:var(--deep); }
+.btn-add { background:var(--green);color:white; }
+.btn-add:hover { background:#059669; }
+.btn-del { background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);padding:0.4rem 0.7rem;font-size:0.78rem;border-radius:8px;cursor:pointer;white-space:nowrap; }
+.btn-del:hover { background:var(--red);color:white; }
+.btn-edit { background:rgba(14,165,233,0.1);color:var(--ocean);border:1px solid rgba(14,165,233,0.3);padding:0.4rem 0.7rem;font-size:0.78rem;border-radius:8px;cursor:pointer;white-space:nowrap; }
+.btn-edit:hover { background:var(--ocean);color:white; }
+.btn-sm { padding:0.5rem 1rem;font-size:0.85rem; }
+
+/* Toggle switch */
+.toggle-row { display:flex;align-items:center;justify-content:space-between;padding:0.9rem 0;border-bottom:1px solid var(--border); }
+.toggle-row:last-child { border-bottom:none; }
+.toggle-label { font-size:0.9rem;font-weight:500; }
+.toggle-desc { font-size:0.78rem;color:var(--muted);margin-top:0.15rem; }
+.toggle { position:relative;width:44px;height:24px;flex-shrink:0; }
+.toggle input { opacity:0;width:0;height:0; }
+.toggle-slider { position:absolute;inset:0;background:var(--border);border-radius:100px;cursor:pointer;transition:background 0.2s; }
+.toggle-slider:before { content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+.toggle input:checked + .toggle-slider { background:var(--ocean); }
+.toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+/* Package table — mobile cards on small screens */
+.pkg-table { width:100%;border-collapse:collapse;font-size:0.88rem; }
+.pkg-table th { background:var(--surface);padding:0.75rem 1rem;text-align:left;font-weight:700;font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid var(--border); }
+.pkg-table td { padding:0.85rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle; }
+.pkg-table tr:hover td { background:var(--ice); }
+.pkg-table .action-cell { display:flex;gap:0.4rem;flex-wrap:wrap;min-width:100px; }
+.badge { display:inline-flex;align-items:center;padding:0.25rem 0.6rem;border-radius:100px;font-size:0.75rem;font-weight:600; }
+.badge-iu { background:#EFF6FF;color:#3B82F6; }
+.badge-ro { background:#F0FDFA;color:#0D9488; }
+.badge-kb { background:#FFFBEB;color:#D97706; }
+.badge-hot { background:#FEF3C7;color:#D97706; }
+
+/* Mobile package cards (replaces table on phone) */
+.pkg-cards-mobile { display:none; }
+.pkg-mobile-card { background:white;border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:0.75rem; }
+.pkg-mc-top { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem; }
+.pkg-mc-name { font-weight:700;font-size:0.95rem; }
+.pkg-mc-price { color:var(--ocean);font-weight:700;font-size:0.9rem; }
+.pkg-mc-meta { display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem; }
+.pkg-mc-actions { display:flex;gap:0.5rem; }
+.pkg-mc-actions button { flex:1;padding:0.5rem;font-size:0.85rem; }
+
+/* Stats */
+.stats-row { display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:2rem; }
+.stat-card { background:white;border-radius:16px;border:1px solid var(--border);padding:1.2rem 1.5rem; }
+.stat-card .sc-num { font-family:'Plus Jakarta Sans',sans-serif;font-size:2rem;font-weight:800;color:var(--slate); }
+.stat-card .sc-label { font-size:0.8rem;color:var(--muted);margin-top:0.2rem; }
+.stat-card .sc-icon { font-size:1.5rem;margin-bottom:0.5rem; }
+
+/* Orders */
+.order-card { background:white;border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:0.8rem; }
+.order-top { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;gap:0.5rem; }
+.order-name { font-weight:700;font-size:0.95rem; }
+.order-pkg { color:var(--ocean);font-size:0.85rem;font-weight:600; }
+.order-time { font-size:0.78rem;color:var(--muted);white-space:nowrap; }
+.order-detail { display:flex;gap:1rem;flex-wrap:wrap; }
+.order-detail span { font-size:0.83rem;color:var(--muted); }
+.order-detail span strong { color:var(--slate); }
+
+/* Feature editor */
+.feat-list { display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem; }
+.feat-item { display:flex;align-items:center;gap:0.6rem; }
+.feat-item input[type=text] { flex:1;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:8px;font-size:0.88rem; }
+.feat-item select { padding:0.5rem;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;background:white;min-width:50px; }
+.feat-remove { background:none;border:none;color:var(--red);font-size:1.1rem;cursor:pointer;padding:0 0.3rem; }
+.add-feat { background:none;border:1px dashed var(--border);border-radius:8px;padding:0.5rem 1rem;color:var(--muted);cursor:pointer;font-size:0.85rem;width:100%;transition:border-color 0.2s,color 0.2s; }
+.add-feat:hover { border-color:var(--ocean);color:var(--ocean); }
+
+/* Toast */
+.toast { position:fixed;bottom:2rem;right:1rem;padding:0.8rem 1.4rem;border-radius:12px;font-size:0.9rem;z-index:9000;transform:translateY(80px);opacity:0;transition:all 0.3s;max-width:calc(100vw - 2rem); }
+.toast.show { transform:translateY(0);opacity:1; }
+.toast.success { background:var(--green);color:white; }
+.toast.error { background:var(--red);color:white; }
+
+/* Modal */
+.modal-bg { display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem; }
+.modal-bg.open { display:flex; }
+.modal-box { background:white;border-radius:20px;padding:2rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;animation:popIn 0.3s ease; }
+.modal-hdr { display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem; }
+.modal-hdr h3 { font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.2rem; }
+.mc { width:30px;height:30px;border-radius:50%;background:var(--surface);border:none;cursor:pointer;font-size:1rem; }
+
+/* Password strength */
+.pw-strength { height:4px;border-radius:4px;margin-top:0.4rem;transition:all 0.3s;background:var(--border); }
+.pw-strength.weak { background:var(--red);width:33%; }
+.pw-strength.medium { background:var(--gold);width:66%; }
+.pw-strength.strong { background:var(--green);width:100%; }
+.pw-hint { font-size:0.75rem;margin-top:0.3rem; }
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:768px) {
+  .sidebar { width:56px; }
+  .sb-brand, .sb-section, .sb-item span:not(.icon), .sb-user, .idle-info, .sb-footer .sb-logout { display:none; }
+  .sb-item { justify-content:center;padding:0.75rem; }
+  .sb-footer { padding:0.75rem;text-align:center; }
+  .sb-footer::after { content:'🚪';font-size:1.2rem;cursor:pointer;color:rgba(255,255,255,0.5); }
+  .main-content { padding:1rem; }
+  .fg-row { grid-template-columns:1fr; }
+  .page-title { font-size:1.3rem; }
+  /* Hide table, show cards on mobile */
+  .pkg-table-wrap { display:none; }
+  .pkg-cards-mobile { display:block; }
+}
+@media(max-width:480px) {
+  .stats-row { grid-template-columns:1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="adminLoader">
+  <div class="al-drop"></div>
+  <div class="al-text">AquaPure Admin</div>
+  <div class="al-sub">Menginisialisasi panel...</div>
+</div>
+
+<!-- IDLE WARNING -->
+<div id="idleWarning">
+  <div class="idle-box">
+    <div class="idle-icon">⏰</div>
+    <h3>Sesi Akan Berakhir</h3>
+    <p>Anda tidak aktif selama beberapa saat. Akan logout otomatis dalam:</p>
+    <div class="idle-count" id="idleCount">60</div>
+    <button class="idle-stay" onclick="resetIdle()">✋ Tetap Login</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="drop-icon">💧</div>
+      <h2>Admin Panel</h2>
+      <p>Masuk untuk mengelola website AquaPure</p>
+    </div>
+    <div class="lg"><label>Email</label><input type="email" id="lgEmail" placeholder="admin@aquapure.id" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="lg"><label>Password</label><input type="password" id="lgPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="login-err" id="lgErr">Email atau password salah!</div>
+    <button class="login-btn" onclick="doLogin()">🔐 Masuk</button>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp">
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">💧 AquaPure</div>
+      <div class="sb-sub">Admin Panel</div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">Menu</div>
+      <button class="sb-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span><span>Dashboard</span></button>
+      <button class="sb-item" onclick="showPage('settings',this)"><span class="icon">⚙️</span><span>Pengaturan</span></button>
+      <button class="sb-item" onclick="showPage('packages',this)"><span class="icon">📦</span><span>Kelola Paket</span></button>
+      <button class="sb-item" onclick="showPage('visibility',this)"><span class="icon">👁️</span><span>Tampilan</span></button>
+      <button class="sb-item" onclick="showPage('orders',this)"><span class="icon">📋</span><span>Pesanan</span></button>
+      <button class="sb-item" onclick="showPage('security',this)"><span class="icon">🔒</span><span>Keamanan</span></button>
+      <div class="sb-section">Website</div>
+      <button class="sb-item" onclick="window.open('index.html','_blank')"><span class="icon">🌐</span><span>Lihat Website</span></button>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user" id="sbUser">—</div>
+      <div class="idle-info" id="idleInfo">Auto-logout: 5 menit tidak aktif</div>
+      <button class="sb-logout" onclick="doLogout()">🚪 Keluar</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">📊 Dashboard</div>
+      <div class="page-sub">Ringkasan aktivitas website AquaPure</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="sc-icon">📦</div><div class="sc-num" id="dashPkg">0</div><div class="sc-label">Total Paket</div></div>
+        <div class="stat-card"><div class="sc-icon">📋</div><div class="sc-num" id="dashOrder">0</div><div class="sc-label">Total Pesanan</div></div>
+        <div class="stat-card"><div class="sc-icon">⭐</div><div class="sc-num" id="dashPopular" style="font-size:1rem;padding-top:0.4rem">—</div><div class="sc-label">Paket Terpopuler</div></div>
+        <div class="stat-card"><div class="sc-icon">📞</div><div class="sc-num" id="dashWA" style="font-size:0.95rem;padding-top:0.5rem">—</div><div class="sc-label">Nomor WA</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Pesanan Terbaru</div>
+        <div id="recentOrders"><div style="color:var(--muted);font-size:0.9rem">Memuat...</div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="page-title">⚙️ Pengaturan Website</div>
+      <div class="page-sub">Edit informasi kontak, teks hero, dan statistik</div>
+      <div class="card">
+        <div class="card-title">👤 Informasi Kontak</div>
+        <div class="fg-row">
+          <div class="fg"><label>Nama Pemilik</label><input id="sNama" value="Dedi Arman"></div>
+          <div class="fg"><label>Nomor WA / HP</label><input id="sWA" value="085277966796" placeholder="08xxxxxxxxxx"></div>
+        </div>
+        <div class="fg"><label>Alamat</label><input id="sAlamat" value="Jl. Sumber Rejo No. 45"></div>
+        <div class="fg"><label>Jam Operasional</label><input id="sJam" value="Senin – Sabtu, 08.00 – 17.00 WIB"></div>
+        <div class="fg"><label>Email Kontak</label><input id="sEmail" value="info@aquapure.id"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🦸 Teks Hero / Banner</div>
+        <div class="fg"><label>Badge / Tagline Kecil</label><input id="sBadge" value="Terpercaya sejak 2015"></div>
+        <div class="fg"><label>Judul Utama Hero</label><input id="sHeroTitle" value="Air Bersih Berkualitas Langsung ke Rumah Anda"></div>
+        <div class="fg"><label>Deskripsi Hero</label><textarea id="sHeroDesc">Solusi lengkap pemasangan depot air isi ulang & sistem filtrasi RO (Reverse Osmosis). Kualitas terjamin, pemasangan cepat, garansi purna jual.</textarea></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Statistik Hero</div>
+        <div class="fg-row">
+          <div class="fg"><label>Pelanggan Puas</label><input id="sStatPelanggan" value="1.200+"></div>
+          <div class="fg"><label>Jangkauan Kota</label><input id="sStatKota" value="8 Kota"></div>
+        </div>
+        <div class="fg"><label>Pengalaman</label><input id="sStatTahun" value="10 Thn"></div>
+      </div>
+      <button class="btn btn-save" onclick="saveSettings()">💾 Simpan Semua Pengaturan</button>
+    </div>
+
+    <!-- PACKAGES -->
+    <div class="page" id="page-packages">
+      <div class="page-title">📦 Kelola Paket</div>
+      <div class="page-sub">Tambah, edit, atau hapus paket layanan</div>
+      <button class="btn btn-add" style="margin-bottom:1.5rem" onclick="openPkgModal()">+ Tambah Paket Baru</button>
+      <!-- Desktop table -->
+      <div class="card pkg-table-wrap" style="padding:0;overflow:hidden">
+        <table class="pkg-table">
+          <thead><tr><th>Paket</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="pkgTableBody"><tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted)">Memuat...</td></tr></tbody>
+        </table>
+      </div>
+      <!-- Mobile cards -->
+      <div class="pkg-cards-mobile" id="pkgCardsMobile"></div>
+    </div>
+
+    <!-- VISIBILITY / TAMPILAN -->
+    <div class="page" id="page-visibility">
+      <div class="page-title">👁️ Tampilan Halaman Depan</div>
+      <div class="page-sub">Pilih bagian mana yang ditampilkan atau disembunyikan</div>
+      <div class="card">
+        <div class="card-title">📄 Bagian Halaman</div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">🦸 Hero / Banner Utama</div><div class="toggle-desc">Bagian atas dengan gambar dan judul</div></div>
+          <label class="toggle"><input type="checkbox" id="vHero" checked onchange="saveVisibility()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">📦 Paket Layanan</div><div class="toggle-desc">Daftar paket dan harga</div></div>
+          <label class="toggle"><input type="checkbox" id="vPaket" checked onchange="saveVisibility()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">🔧 Cara Kerja</div><div class="toggle-desc">Langkah-langkah proses pemasangan</div></div>
+          <label class="toggle"><input type="checkbox" id="vCaraKerja" checked onchange="saveVisibility()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">⭐ Keunggulan</div><div class="toggle-desc">6 kartu keunggulan layanan</div></div>
+          <label class="toggle"><input type="checkbox" id="vKeunggulan" checked onchange="saveVisibility()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">💬 Testimoni</div><div class="toggle-desc">Ulasan dari pelanggan</div></div>
+          <label class="toggle"><input type="checkbox" id="vTestimoni" checked onchange="saveVisibility()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">📝 Form Pemesanan</div><div class="toggle-desc">Form dan informasi kontak</div></div>
+          <label class="toggle"><input type="checkbox" id="vPesan" checked onchange="saveVisibility()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div style="background:var(--ice);border-radius:12px;padding:1rem;font-size:0.85rem;color:var(--muted)">
+        💡 Perubahan tampilan langsung tersimpan dan diterapkan ke halaman utama.
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="page" id="page-orders">
+      <div class="page-title">📋 Daftar Pesanan</div>
+      <div class="page-sub">Semua permintaan pemasangan yang masuk</div>
+      <div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;flex-wrap:wrap">
+        <button class="btn btn-save btn-sm" onclick="loadOrders()">🔄 Refresh</button>
+        <input id="orderSearch" placeholder="🔍 Cari nama / paket..." style="padding:0.6rem 1rem;border:2px solid var(--border);border-radius:10px;font-family:'DM Sans';font-size:0.88rem;outline:none;flex:1;min-width:180px" oninput="filterOrders()" onfocus="this.style.borderColor='var(--ocean)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div id="ordersList"><div style="color:var(--muted);text-align:center;padding:3rem">Memuat pesanan...</div></div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="page" id="page-security">
+      <div class="page-title">🔒 Keamanan Akun</div>
+      <div class="page-sub">Ubah password akun admin Anda</div>
+      <div class="card">
+        <div class="card-title">🔑 Ganti Password</div>
+        <div class="fg"><label>Password Saat Ini</label><input type="password" id="pwOld" placeholder="Password lama"></div>
+        <div class="fg">
+          <label>Password Baru</label>
+          <input type="password" id="pwNew" placeholder="Minimal 8 karakter" oninput="checkPwStrength()">
+          <div class="pw-strength" id="pwStrengthBar"></div>
+          <div class="pw-hint" id="pwHint" style="color:var(--muted)"></div>
+        </div>
+        <div class="fg"><label>Konfirmasi Password Baru</label><input type="password" id="pwConfirm" placeholder="Ulangi password baru"></div>
+        <button class="btn btn-save" onclick="changePassword()">🔒 Simpan Password Baru</button>
+      </div>
+      <div class="card">
+        <div class="card-title">⏱️ Pengaturan Auto-Logout</div>
+        <div class="fg">
+          <label>Waktu Tidak Aktif (menit)</label>
+          <select id="idleTimeout" onchange="saveIdleTimeout()">
+            <option value="3">3 menit</option>
+            <option value="5" selected>5 menit (default)</option>
+            <option value="10">10 menit</option>
+            <option value="15">15 menit</option>
+            <option value="30">30 menit</option>
+          </select>
+        </div>
+        <div style="font-size:0.83rem;color:var(--muted)">Admin akan logout otomatis jika tidak ada aktivitas selama waktu yang ditentukan.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL PAKET -->
+<div class="modal-bg" id="pkgModal" onclick="closePkgModal(event)">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="pkgModalTitle">Tambah Paket</h3>
+      <button class="mc" onclick="closePkgModalDirect()">✕</button>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Nama Paket *</label><input id="mName" placeholder="Rumahan Standar"></div>
+      <div class="fg"><label>Tipe / Subtitle</label><input id="mType" placeholder="Air Isi Ulang"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Kategori *</label>
+        <select id="mCat"><option value="isi-ulang">Air Isi Ulang</option><option value="ro">Sistem RO</option><option value="kombo">Kombo</option></select>
+      </div>
+      <div class="fg"><label>Ikon (emoji)</label><input id="mIcon" placeholder="💧" maxlength="4"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Warna Ikon</label>
+        <select id="mIconBg"><option value="blue">Biru</option><option value="teal">Teal</option><option value="gold">Emas</option><option value="purple">Ungu</option></select>
+      </div>
+      <div class="fg"><label>Populer?</label>
+        <select id="mPopular"><option value="false">Tidak</option><option value="true">Ya (tampilkan badge)</option></select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Harga *</label><input id="mPrice" placeholder="Rp 1.500.000"></div>
+      <div class="fg"><label>Catatan Harga</label><input id="mPriceNote" placeholder="sudah termasuk material & jasa pasang"></div>
+    </div>
+    <div class="fg">
+      <label>Fitur Paket</label>
+      <div class="feat-list" id="featList"></div>
+      <button class="add-feat" onclick="addFeat()">+ Tambah Fitur</button>
+    </div>
+    <div style="font-weight:700;font-size:0.9rem;margin:1rem 0 0.5rem;color:var(--slate)">Detail Spesifikasi</div>
+    <div class="fg-row">
+      <div class="fg"><label>Kapasitas</label><input id="mKap" placeholder="200–300 L/hari"></div>
+      <div class="fg"><label>Sistem Filtrasi</label><input id="mFilter" placeholder="3 Tahap"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Garansi</label><input id="mGaransi" placeholder="1 Tahun"></div>
+      <div class="fg"><label>Cocok Untuk</label><input id="mCocok" placeholder="Rumah 1–2 KK"></div>
+    </div>
+    <div class="fg"><label>Waktu Pemasangan</label><input id="mWaktu" placeholder="1 Hari Kerja"></div>
+    <div style="display:flex;gap:0.75rem;margin-top:1rem">
+      <button class="btn btn-save" onclick="savePkg()" style="flex:1">💾 Simpan Paket</button>
+      <button class="btn" style="background:var(--surface);color:var(--muted)" onclick="closePkgModalDirect()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, addDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAuBx4xgdWLlKEJ98SKIEjSrK4LuHMU74c",
+  authDomain: "aqua-pure-13891.firebaseapp.com",
+  projectId: "aqua-pure-13891",
+  storageBucket: "aqua-pure-13891.firebasestorage.app",
+  messagingSenderId: "851106256682",
+  appId: "1:851106256682:web:d8e2e25b5d9923f8847053"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let allOrders = [], allPackages = [], editingPkgId = null;
+
+// ══════════════════════════════
+// AUTO-LOGOUT (5 menit idle)
+// ══════════════════════════════
+let idleMinutes = 5;
+let idleTimer, countdownTimer, idleCountdown;
+const EVENTS = ['mousemove','keydown','click','scroll','touchstart'];
+
+function startIdleTimer() {
+  clearTimeout(idleTimer);
+  const ms = idleMinutes * 60 * 1000;
+  idleTimer = setTimeout(showIdleWarning, ms - 60000); // warn 1 min before
+}
+
+function showIdleWarning() {
+  idleCountdown = 60;
+  document.getElementById('idleCount').textContent = idleCountdown;
+  document.getElementById('idleWarning').classList.add('show');
+  countdownTimer = setInterval(() => {
+    idleCountdown--;
+    document.getElementById('idleCount').textContent = idleCountdown;
+    if (idleCountdown <= 0) {
+      clearInterval(countdownTimer);
+      doLogout();
+    }
+  }, 1000);
+}
+
+window.resetIdle = () => {
+  clearInterval(countdownTimer);
+  document.getElementById('idleWarning').classList.remove('show');
+  startIdleTimer();
+};
+
+function attachIdleEvents() {
+  EVENTS.forEach(e => document.addEventListener(e, () => {
+    if (!document.getElementById('idleWarning').classList.contains('show')) startIdleTimer();
+  }));
+}
+
+window.saveIdleTimeout = () => {
+  idleMinutes = parseInt(document.getElementById('idleTimeout').value);
+  localStorage.setItem('aq_idle', idleMinutes);
+  startIdleTimer();
+  showToast(`⏱️ Auto-logout diatur ${idleMinutes} menit`, 'success');
+};
+
+// ══════════════════════════════
+// AUTH
+// ══════════════════════════════
+onAuthStateChanged(auth, user => {
+  document.getElementById('adminLoader').classList.add('hidden');
+  if (user) {
+    document.getElementById('loginScreen').classList.remove('show');
+    document.getElementById('adminApp').classList.add('show');
+    document.getElementById('sbUser').textContent = user.email;
+    idleMinutes = parseInt(localStorage.getItem('aq_idle') || '5');
+    document.getElementById('idleTimeout').value = idleMinutes;
+    attachIdleEvents();
+    startIdleTimer();
+    initAdmin();
+  } else {
+    clearTimeout(idleTimer); clearInterval(countdownTimer);
+    document.getElementById('loginScreen').classList.add('show');
+    document.getElementById('adminApp').classList.remove('show');
+    document.getElementById('idleWarning').classList.remove('show');
+  }
+});
+
+window.doLogin = async () => {
+  const email = document.getElementById('lgEmail').value.trim();
+  const pass = document.getElementById('lgPass').value;
+  const err = document.getElementById('lgErr');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Isi email dan password!'; err.style.display = 'block'; return; }
+  try { await signInWithEmailAndPassword(auth, email, pass); }
+  catch(e) { err.textContent = 'Email atau password salah!'; err.style.display = 'block'; }
+};
+
+window.doLogout = async () => {
+  clearTimeout(idleTimer); clearInterval(countdownTimer);
+  await signOut(auth);
+};
+
+// ══════════════════════════════
+// INIT
+// ══════════════════════════════
+async function initAdmin() {
+  await loadSettings();
+  await loadPackages();
+  await loadOrders();
+  await loadVisibility();
+  updateDashboard();
+}
+
+// ══════════════════════════════
+// SETTINGS
+// ══════════════════════════════
+async function loadSettings() {
+  try {
+    const snap = await getDocs(collection(db, 'settings'));
+    if (!snap.empty) snap.forEach(d => fillSettingsForm(d.data()));
+  } catch(e) {}
+}
+
+function fillSettingsForm(s) {
+  if (s.nama) document.getElementById('sNama').value = s.nama;
+  if (s.wa) document.getElementById('sWA').value = s.wa;
+  if (s.alamat) document.getElementById('sAlamat').value = s.alamat;
+  if (s.jam) document.getElementById('sJam').value = s.jam;
+  if (s.email) document.getElementById('sEmail').value = s.email;
+  if (s.badge) document.getElementById('sBadge').value = s.badge;
+  if (s.heroTitle) document.getElementById('sHeroTitle').value = s.heroTitle;
+  if (s.heroDesc) document.getElementById('sHeroDesc').value = s.heroDesc;
+  if (s.statPelanggan) document.getElementById('sStatPelanggan').value = s.statPelanggan;
+  if (s.statKota) document.getElementById('sStatKota').value = s.statKota;
+  if (s.statTahun) document.getElementById('sStatTahun').value = s.statTahun;
+  document.getElementById('dashWA').textContent = s.wa || '—';
+}
+
+window.saveSettings = async () => {
+  const data = {
+    nama: document.getElementById('sNama').value.trim(),
+    wa: document.getElementById('sWA').value.trim(),
+    phone: document.getElementById('sWA').value.trim(),
+    alamat: document.getElementById('sAlamat').value.trim(),
+    jam: document.getElementById('sJam').value.trim(),
+    email: document.getElementById('sEmail').value.trim(),
+    badge: document.getElementById('sBadge').value.trim(),
+    heroTitle: document.getElementById('sHeroTitle').value.trim(),
+    heroDesc: document.getElementById('sHeroDesc').value.trim(),
+    statPelanggan: document.getElementById('sStatPelanggan').value.trim(),
+    statKota: document.getElementById('sStatKota').value.trim(),
+    statTahun: document.getElementById('sStatTahun').value.trim(),
+  };
+  try {
+    const snap = await getDocs(collection(db, 'settings'));
+    if (snap.empty) { await addDoc(collection(db, 'settings'), data); }
+    else snap.forEach(async d => await updateDoc(doc(db,'settings',d.id), data));
+    document.getElementById('dashWA').textContent = data.wa;
+    showToast('✅ Pengaturan berhasil disimpan!', 'success');
+  } catch(e) { showToast('❌ Gagal: ' + e.message, 'error'); }
+};
+
+// ══════════════════════════════
+// VISIBILITY
+// ══════════════════════════════
+async function loadVisibility() {
+  try {
+    const snap = await getDocs(collection(db, 'visibility'));
+    if (!snap.empty) {
+      snap.forEach(d => {
+        const v = d.data();
+        ['Hero','Paket','CaraKerja','Keunggulan','Testimoni','Pesan'].forEach(k => {
+          const el = document.getElementById('v'+k);
+          if (el && v[k] !== undefined) el.checked = v[k];
+        });
+      });
+    }
+  } catch(e) {}
+}
+
+window.saveVisibility = async () => {
+  const data = {
+    Hero: document.getElementById('vHero').checked,
+    Paket: document.getElementById('vPaket').checked,
+    CaraKerja: document.getElementById('vCaraKerja').checked,
+    Keunggulan: document.getElementById('vKeunggulan').checked,
+    Testimoni: document.getElementById('vTestimoni').checked,
+    Pesan: document.getElementById('vPesan').checked,
+  };
+  try {
+    const snap = await getDocs(collection(db, 'visibility'));
+    if (snap.empty) { await addDoc(collection(db, 'visibility'), data); }
+    else snap.forEach(async d => await updateDoc(doc(db,'visibility',d.id), data));
+    showToast('👁️ Pengaturan tampilan disimpan!', 'success');
+  } catch(e) { showToast('❌ Gagal: ' + e.message, 'error'); }
+};
+
+// ══════════════════════════════
+// PACKAGES
+// ══════════════════════════════
+async function loadPackages() {
+  try {
+    const snap = await getDocs(collection(db, 'packages'));
+    allPackages = [];
+    if (snap.empty) {
+      const defaults = [
+        { id:'pkg1', category:'isi-ulang', name:'Rumahan Standar', type:'Air Isi Ulang', icon:'💧', iconBg:'blue', popular:false, price:'Rp 1.500.000', priceNote:'sudah termasuk material & jasa pasang', features:[{ok:true,text:'Filter 3 tahap (sedimen, karbon, post-filter)'},{ok:true,text:'Kapasitas 200–300 liter/hari'},{ok:true,text:'Cocok untuk 1 keluarga (5–7 orang)'},{ok:true,text:'Garansi komponen 1 tahun'},{ok:false,text:'UV Sterilizer'},{ok:false,text:'Sistem RO'}], detail:{kapasitas:'200–300 L/hari',filter:'3 Tahap',garansi:'1 Tahun',cocok:'Rumah 1–2 KK',waktu:'1 Hari Kerja'} },
+        { id:'pkg2', category:'isi-ulang', name:'Rumahan Premium', type:'Air Isi Ulang', icon:'💧', iconBg:'teal', popular:true, price:'Rp 2.500.000', priceNote:'sudah termasuk UV sterilizer', features:[{ok:true,text:'Filter 5 tahap lengkap'},{ok:true,text:'Kapasitas 400–600 liter/hari'},{ok:true,text:'UV Sterilizer anti-bakteri'},{ok:true,text:'Garansi komponen 2 tahun'},{ok:true,text:'Maintenance visit 6 bulan sekali'},{ok:false,text:'Sistem RO membran'}], detail:{kapasitas:'400–600 L/hari',filter:'5 Tahap + UV',garansi:'2 Tahun',cocok:'Rumah Besar / Kos',waktu:'1–2 Hari Kerja'} },
+        { id:'pkg3', category:'kombo', name:'Kombo Terlengkap', type:'Isi Ulang + RO', icon:'⭐', iconBg:'gold', popular:true, price:'Rp 7.500.000', priceNote:'hemat Rp 2.200.000 vs beli satuan', features:[{ok:true,text:'Depot air isi ulang 5 tahap + UV'},{ok:true,text:'Sistem RO 7 tahap alkali untuk minum'},{ok:true,text:'Kapasitas depot 400–600 L/hari'},{ok:true,text:'Instalasi lengkap 1 titik'},{ok:true,text:'Garansi 2 tahun semua komponen'},{ok:true,text:'Maintenance 6 bulan sekali gratis'}], detail:{kapasitas:'Depot 600 L + RO 560 L/hari',filter:'5+7 Tahap Lengkap',garansi:'2 Tahun Penuh',cocok:'Rumah / Kos / Kantor Kecil',waktu:'2–3 Hari Kerja'} }
+      ];
+      for (const pkg of defaults) { const {id,...data}=pkg; await setDoc(doc(db,'packages',id),data); }
+      allPackages = defaults;
+    } else {
+      snap.forEach(d => allPackages.push({ id:d.id, ...d.data() }));
+    }
+    renderPkgTable();
+  } catch(e) { showToast('Gagal memuat paket', 'error'); }
+}
+
+function renderPkgTable() {
+  const catBadge = {'isi-ulang':'badge-iu','ro':'badge-ro','kombo':'badge-kb'};
+  const catLabel = {'isi-ulang':'Isi Ulang','ro':'Sistem RO','kombo':'Kombo'};
+
+  // Desktop table
+  const body = document.getElementById('pkgTableBody');
+  if (!allPackages.length) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted)">Belum ada paket.</td></tr>';
+  } else {
+    body.innerHTML = allPackages.map(p => `
+      <tr>
+        <td><strong>${p.icon} ${p.name}</strong><br><span style="font-size:0.8rem;color:var(--muted)">${p.type||''}</span></td>
+        <td><span class="badge ${catBadge[p.category]||''}">${catLabel[p.category]||p.category}</span></td>
+        <td><strong>${p.price}</strong></td>
+        <td>${p.popular ? '<span class="badge badge-hot">⭐ Populer</span>' : '<span style="color:var(--muted);font-size:0.82rem">Standar</span>'}</td>
+        <td><div class="action-cell"><button class="btn-edit" onclick="window.editPkg('${p.id}')">✏️ Edit</button><button class="btn-del" onclick="window.deletePkg('${p.id}','${p.name.replace(/'/g,'')}')">🗑️</button></div></td>
+      </tr>`).join('');
+  }
+
+  // Mobile cards
+  const mobile = document.getElementById('pkgCardsMobile');
+  mobile.innerHTML = allPackages.map(p => `
+    <div class="pkg-mobile-card">
+      <div class="pkg-mc-top">
+        <div class="pkg-mc-name">${p.icon} ${p.name}</div>
+        <div class="pkg-mc-price">${p.price}</div>
+      </div>
+      <div class="pkg-mc-meta">
+        <span class="badge ${catBadge[p.category]||''}">${catLabel[p.category]||p.category}</span>
+        ${p.popular ? '<span class="badge badge-hot">⭐ Populer</span>' : ''}
+      </div>
+      <div class="pkg-mc-actions">
+        <button class="btn-edit" onclick="window.editPkg('${p.id}')">✏️ Edit Paket</button>
+        <button class="btn-del" onclick="window.deletePkg('${p.id}','${p.name.replace(/'/g,'')}')">🗑️ Hapus</button>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('dashPkg').textContent = allPackages.length;
+  const pop = allPackages.find(p => p.popular);
+  document.getElementById('dashPopular').textContent = pop ? pop.name : '—';
+}
+
+window.openPkgModal = () => {
+  editingPkgId = null;
+  document.getElementById('pkgModalTitle').textContent = '➕ Tambah Paket';
+  ['mName','mType','mPrice','mPriceNote','mKap','mFilter','mGaransi','mCocok','mWaktu'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('mIcon').value = '💧';
+  document.getElementById('mCat').value = 'isi-ulang';
+  document.getElementById('mIconBg').value = 'blue';
+  document.getElementById('mPopular').value = 'false';
+  document.getElementById('featList').innerHTML = '';
+  addFeat(true, '');
+  document.getElementById('pkgModal').classList.add('open');
+};
+
+window.editPkg = (id) => {
+  const pkg = allPackages.find(p => p.id === id);
+  if (!pkg) return;
+  editingPkgId = id;
+  document.getElementById('pkgModalTitle').textContent = '✏️ Edit: ' + pkg.name;
+  document.getElementById('mName').value = pkg.name||'';
+  document.getElementById('mType').value = pkg.type||'';
+  document.getElementById('mCat').value = pkg.category||'isi-ulang';
+  document.getElementById('mIcon').value = pkg.icon||'💧';
+  document.getElementById('mIconBg').value = pkg.iconBg||'blue';
+  document.getElementById('mPopular').value = pkg.popular ? 'true' : 'false';
+  document.getElementById('mPrice').value = pkg.price||'';
+  document.getElementById('mPriceNote').value = pkg.priceNote||'';
+  const d = pkg.detail||{};
+  document.getElementById('mKap').value = d.kapasitas||'';
+  document.getElementById('mFilter').value = d.filter||'';
+  document.getElementById('mGaransi').value = d.garansi||'';
+  document.getElementById('mCocok').value = d.cocok||'';
+  document.getElementById('mWaktu').value = d.waktu||'';
+  document.getElementById('featList').innerHTML = '';
+  (pkg.features||[]).forEach(f => addFeat(f.ok, f.text));
+  document.getElementById('pkgModal').classList.add('open');
+};
+
+window.deletePkg = async (id, name) => {
+  if (!confirm(`Hapus paket "${name}"?`)) return;
+  try {
+    await deleteDoc(doc(db,'packages',id));
+    allPackages = allPackages.filter(p => p.id !== id);
+    renderPkgTable();
+    showToast('🗑️ Paket dihapus!', 'success');
+  } catch(e) { showToast('Gagal hapus: '+e.message, 'error'); }
+};
+
+window.savePkg = async () => {
+  const name = document.getElementById('mName').value.trim();
+  const price = document.getElementById('mPrice').value.trim();
+  if (!name||!price) { showToast('⚠️ Nama & harga wajib diisi!','error'); return; }
+  const feats = [...document.querySelectorAll('.feat-item')].map(el => ({
+    ok: el.querySelector('select').value === 'true',
+    text: el.querySelector('input[type=text]').value.trim()
+  })).filter(f => f.text);
+  const data = {
+    name, price,
+    type: document.getElementById('mType').value.trim(),
+    category: document.getElementById('mCat').value,
+    icon: document.getElementById('mIcon').value.trim()||'💧',
+    iconBg: document.getElementById('mIconBg').value,
+    popular: document.getElementById('mPopular').value === 'true',
+    priceNote: document.getElementById('mPriceNote').value.trim(),
+    features: feats,
+    detail: {
+      kapasitas: document.getElementById('mKap').value.trim(),
+      filter: document.getElementById('mFilter').value.trim(),
+      garansi: document.getElementById('mGaransi').value.trim(),
+      cocok: document.getElementById('mCocok').value.trim(),
+      waktu: document.getElementById('mWaktu').value.trim()
+    }
+  };
+  try {
+    if (editingPkgId) {
+      await updateDoc(doc(db,'packages',editingPkgId), data);
+      const idx = allPackages.findIndex(p => p.id === editingPkgId);
+      if (idx !== -1) allPackages[idx] = {id:editingPkgId,...data};
+      showToast('✅ Paket diperbarui!','success');
+    } else {
+      const ref = await addDoc(collection(db,'packages'), data);
+      allPackages.push({id:ref.id,...data});
+      showToast('✅ Paket ditambahkan!','success');
+    }
+    renderPkgTable();
+    closePkgModalDirect();
+  } catch(e) { showToast('❌ Gagal: '+e.message,'error'); }
+};
+
+window.addFeat = (ok=true, text='') => {
+  const list = document.getElementById('featList');
+  const div = document.createElement('div');
+  div.className = 'feat-item';
+  div.innerHTML = `<select><option value="true" ${ok===true||ok==='true'?'selected':''}>✓</option><option value="false" ${ok===false||ok==='false'?'selected':''}>✕</option></select><input type="text" value="${text}" placeholder="Deskripsi fitur..."><button class="feat-remove" onclick="this.parentElement.remove()">×</button>`;
+  list.appendChild(div);
+};
+
+window.closePkgModal = (e) => { if (e.target===document.getElementById('pkgModal')) closePkgModalDirect(); };
+window.closePkgModalDirect = () => { document.getElementById('pkgModal').classList.remove('open'); editingPkgId=null; };
+
+// ══════════════════════════════
+// ORDERS
+// ══════════════════════════════
+async function loadOrders() {
+  try {
+    const snap = await getDocs(query(collection(db,'orders'), orderBy('waktu','desc')));
+    allOrders = [];
+    snap.forEach(d => allOrders.push({id:d.id,...d.data()}));
+    renderOrders(allOrders);
+    document.getElementById('dashOrder').textContent = allOrders.length;
+    renderRecentOrders();
+  } catch(e) {
+    document.getElementById('ordersList').innerHTML = '<div style="color:var(--muted);text-align:center;padding:2rem">Belum ada pesanan masuk.</div>';
+  }
+}
+
+function renderOrders(list) {
+  const el = document.getElementById('ordersList');
+  if (!list.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:3rem">Belum ada pesanan masuk.</div>'; return; }
+  el.innerHTML = list.map(o => {
+    const waktu = o.waktu?.toDate ? o.waktu.toDate().toLocaleString('id-ID') : 'Baru saja';
+    const waNum = '62'+o.wa.replace(/^0/,'').replace(/\D/g,'');
+    return `<div class="order-card">
+      <div class="order-top">
+        <div><div class="order-name">👤 ${o.nama}</div><div class="order-pkg">📦 ${o.paket||'—'} — ${o.harga||''}</div></div>
+        <div class="order-time">${waktu}</div>
+      </div>
+      <div class="order-detail">
+        <span>📱 <strong>${o.wa}</strong></span>
+        <span>📍 <strong>${o.alamat}</strong></span>
+        ${o.catatan?`<span>📝 ${o.catatan}</span>`:''}
+      </div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <a href="https://wa.me/${waNum}?text=${encodeURIComponent('Halo '+o.nama+'! Terima kasih memesan *'+(o.paket||'')+'* di AquaPure. Kami segera hubungi untuk konfirmasi survei. 🙏')}" target="_blank" style="padding:0.4rem 0.9rem;background:#25D366;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem">💬 Balas WA</a>
+        <a href="tel:${waNum}" style="padding:0.4rem 0.9rem;background:var(--ocean);color:white;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem">📞 Telepon</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRecentOrders() {
+  const el = document.getElementById('recentOrders');
+  const recent = allOrders.slice(0,5);
+  if (!recent.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.9rem">Belum ada pesanan.</div>'; return; }
+  el.innerHTML = recent.map(o => {
+    const waktu = o.waktu?.toDate ? o.waktu.toDate().toLocaleString('id-ID') : 'Baru saja';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border)">
+      <div><strong>${o.nama}</strong> <span style="font-size:0.82rem;color:var(--ocean)">${o.paket||'—'}</span></div>
+      <span style="font-size:0.78rem;color:var(--muted)">${waktu}</span>
+    </div>`;
+  }).join('');
+}
+
+window.loadOrders = loadOrders;
+window.filterOrders = () => {
+  const q = document.getElementById('orderSearch').value.toLowerCase();
+  renderOrders(allOrders.filter(o => (o.nama+o.paket+o.wa).toLowerCase().includes(q)));
+};
+
+// ══════════════════════════════
+// PASSWORD
+// ══════════════════════════════
+window.checkPwStrength = () => {
+  const pw = document.getElementById('pwNew').value;
+  const bar = document.getElementById('pwStrengthBar');
+  const hint = document.getElementById('pwHint');
+  if (!pw) { bar.className='pw-strength'; hint.textContent=''; return; }
+  const strong = pw.length >= 8 && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw);
+  const medium = pw.length >= 6 && (/[A-Z]/.test(pw) || /[0-9]/.test(pw));
+  if (strong) { bar.className='pw-strength strong'; hint.textContent='✅ Password kuat'; hint.style.color='var(--green)'; }
+  else if (medium) { bar.className='pw-strength medium'; hint.textContent='⚠️ Cukup — tambah angka/simbol'; hint.style.color='var(--gold)'; }
+  else { bar.className='pw-strength weak'; hint.textContent='❌ Terlalu lemah (min 6 karakter)'; hint.style.color='var(--red)'; }
+};
+
+window.changePassword = async () => {
+  const oldPw = document.getElementById('pwOld').value;
+  const newPw = document.getElementById('pwNew').value;
+  const confirmPw = document.getElementById('pwConfirm').value;
+  if (!oldPw||!newPw||!confirmPw) { showToast('⚠️ Semua field wajib diisi!','error'); return; }
+  if (newPw !== confirmPw) { showToast('❌ Password baru tidak cocok!','error'); return; }
+  if (newPw.length < 6) { showToast('❌ Password minimal 6 karakter!','error'); return; }
+  try {
+    const user = auth.currentUser;
+    const cred = EmailAuthProvider.credential(user.email, oldPw);
+    await reauthenticateWithCredential(user, cred);
+    await updatePassword(user, newPw);
+    document.getElementById('pwOld').value = '';
+    document.getElementById('pwNew').value = '';
+    document.getElementById('pwConfirm').value = '';
+    document.getElementById('pwStrengthBar').className = 'pw-strength';
+    document.getElementById('pwHint').textContent = '';
+    showToast('✅ Password berhasil diubah!','success');
+  } catch(e) {
+    if (e.code === 'auth/wrong-password') showToast('❌ Password lama salah!','error');
+    else showToast('❌ Gagal: '+e.message,'error');
+  }
+};
+
+// ══════════════════════════════
+// DASHBOARD & UI
+// ══════════════════════════════
+function updateDashboard() {
+  document.getElementById('dashPkg').textContent = allPackages.length;
+  document.getElementById('dashOrder').textContent = allOrders.length;
+  const pop = allPackages.find(p => p.popular);
+  document.getElementById('dashPopular').textContent = pop ? pop.name : '—';
+}
+
+window.showPage = (id, btn) => {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+};
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
